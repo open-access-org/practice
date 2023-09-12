@@ -1,0 +1,24 @@
+name: Self-Approve PR
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  self_approve:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for Self-Approval Label
+        id: check_self_approve
+        run: echo "::set-output name=self_approved::$(echo '${{ github.event.pull_request.labels.*.name }}' | grep -q 'self-approve' && echo 'true' || echo 'false')"
+
+      - name: Approve PR if Self-Approved
+        if: steps.check_self_approve.outputs.self_approved == 'true'
+        run: |
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          API_URL="https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews"
+          curl -X POST -H "Authorization: Bearer $TOKEN" -d '{"event": "APPROVE"}' $API_URL
